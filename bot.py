@@ -10,6 +10,7 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "data.json"
 
 
+# Load saved data
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
@@ -22,6 +23,7 @@ def load_data():
         }
 
 
+# Save data
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(groups, f)
@@ -31,18 +33,15 @@ groups = load_data()
 current_group = None
 
 
-def find_number(text, keywords):
-
-    for word in keywords:
-        pattern = word + r"[^\d]*(\d+)"
-        match = re.search(pattern, text)
-
+def find(text, words):
+    for w in words:
+        match = re.search(w + r".*?(\d+)", text.lower())
         if match:
             return int(match.group(1))
-
     return 0
 
 
+# Keyboard buttons
 def keyboard():
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -64,6 +63,7 @@ def keyboard():
     return kb
 
 
+# Start command
 @bot.message_handler(commands=['start'])
 def start(message):
 
@@ -74,13 +74,12 @@ def start(message):
     )
 
 
-@bot.message_handler(content_types=['text','photo'])
+# Main handler
+@bot.message_handler(func=lambda m: True)
 def handle(message):
 
     global current_group
-
-    # read both text and photo captions
-    text = (message.text if message.text else message.caption or "").lower()
+    text = message.text.lower()
 
 
     if "win03" in text:
@@ -115,6 +114,7 @@ def handle(message):
         return
 
 
+    # DAILY REPORT (one-by-one)
     if "daily" in text:
 
         bot.send_message(
@@ -163,7 +163,8 @@ EARN TOGETHER: {groups['earn']['entries']}
         return
 
 
-    if text.strip() == "end":
+    # END command
+    if text == "end":
 
         g = groups[current_group]
 
@@ -187,13 +188,14 @@ Withdrawals: {g['wd']}
         return
 
 
-    reg = find_number(text, ["registrations","registration","register"])
-    ws = find_number(text, ["ws task","task authorised","wa task"])
-    active = find_number(text, ["active user","active users","active"])
-    wd = find_number(text, ["withdrawals","withdrawal","withdraw"])
+    # Detect numbers
+    reg = find(text,["registration","register"])
+    ws = find(text,["task","authorised","wa"])
+    active = find(text,["active"])
+    wd = find(text,["withdraw"])
 
-if reg or ws or active or wd:
 
+    if reg or ws or active or wd:
         groups[current_group]["reg"] += reg
         groups[current_group]["ws"] += ws
         groups[current_group]["active"] += active
