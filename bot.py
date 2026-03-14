@@ -132,17 +132,52 @@ Withdrawals: {groups['earn']['wd']}
 """
         )
 
-        bot.send_message(
-            message.chat.id,
+      if "daily" in text:
+
+    bot.send_message(
+        message.chat.id,
+f"""📊 WIN03
+
+Registrations: {groups['win03']['reg']}
+WS Task: {groups['win03']['ws']}
+Active Users: {groups['win03']['active']}
+Withdrawals: {groups['win03']['wd']}
+"""
+    )
+
+    bot.send_message(
+        message.chat.id,
+f"""💼 SMART HUB EARNING
+
+Registrations: {groups['smart']['reg']}
+WS Task: {groups['smart']['ws']}
+Active Users: {groups['smart']['active']}
+Withdrawals: {groups['smart']['wd']}
+"""
+    )
+
+    bot.send_message(
+        message.chat.id,
+f"""💰 EARN TOGETHER
+
+Registrations: {groups['earn']['reg']}
+WS Task: {groups['earn']['ws']}
+Active Users: {groups['earn']['active']}
+Withdrawals: {groups['earn']['wd']}
+"""
+    )
+
+    bot.send_message(
+        message.chat.id,
 f"""Entries Counted
 
 WIN03: {groups['win03']['entries']}
 SMART HUB: {groups['smart']['entries']}
 EARN TOGETHER: {groups['earn']['entries']}
 """
-        )
+    )
 
-        return
+    return
 
 
     if text == "end":
