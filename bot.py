@@ -24,15 +24,21 @@ def find(text, words):
 
 
 def keyboard():
+
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
 
     kb.add(
-        KeyboardButton("WIN03"),
-        KeyboardButton("SMART HUB EARNING"),
-        KeyboardButton("EARN TOGETHER")
+        KeyboardButton("📊 WIN03"),
+        KeyboardButton("💼 SMART HUB EARNING")
     )
 
-    kb.add(KeyboardButton("RESET"))
+    kb.add(
+        KeyboardButton("💰 EARN TOGETHER")
+    )
+
+    kb.add(
+        KeyboardButton("🔄 RESET")
+    )
 
     return kb
 
@@ -55,25 +61,23 @@ def handle(message):
 
     if "win03" in text:
         current_group = "win03"
-        bot.reply_to(message,"Start sending WIN03 data.\nSend END when finished.")
         return
 
     if "smart" in text:
         current_group = "smart"
-        bot.reply_to(message,"Start sending SMART HUB data.\nSend END when finished.")
         return
 
     if "earn" in text:
         current_group = "earn"
-        bot.reply_to(message,"Start sending EARN TOGETHER data.\nSend END when finished.")
         return
+
 
     if "reset" in text:
 
         for g in groups:
             groups[g] = {"reg":0,"ws":0,"active":0,"wd":0}
 
-        bot.reply_to(message,"All totals reset.")
+        bot.send_message(message.chat.id,"🔄 All totals reset.")
         return
 
 
@@ -82,9 +86,9 @@ def handle(message):
         g = groups[current_group]
 
         titles = {
-            "win03":"WIN03",
-            "smart":"SMART HUB EARNING",
-            "earn":"EARN TOGETHER"
+            "win03":"📊 WIN03",
+            "smart":"💼 SMART HUB EARNING",
+            "earn":"💰 EARN TOGETHER"
         }
 
         bot.send_message(
@@ -112,9 +116,6 @@ Withdrawals: {g['wd']}
         groups[current_group]["ws"] += ws
         groups[current_group]["active"] += active
         groups[current_group]["wd"] += wd
-
-        # 👍 reaction so you know it counted
-        bot.send_message(message.chat.id,"👍")
 
 
 bot.infinity_polling()
