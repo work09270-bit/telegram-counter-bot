@@ -74,12 +74,13 @@ def start(message):
     )
 
 
-@bot.message_handler(func=lambda m: True)
+@bot.message_handler(content_types=['text','photo'])
 def handle(message):
 
     global current_group
 
-    text = (message.text or message.caption or "").lower()
+    # read both text and photo captions
+    text = (message.text if message.text else message.caption or "").lower()
 
 
     if "win03" in text:
@@ -186,13 +187,13 @@ Withdrawals: {g['wd']}
         return
 
 
-    reg = find_number(text, ["registrations", "registration", "register"])
-    ws = find_number(text, ["ws task", "task authorised", "wa task"])
-    active = find_number(text, ["active user", "active users", "active"])
-    wd = find_number(text, ["withdrawals", "withdrawal", "withdraw"])
+    reg = find_number(text, ["registrations","registration","register"])
+    ws = find_number(text, ["ws task","task authorised","wa task"])
+    active = find_number(text, ["active user","active users","active"])
+    wd = find_number(text, ["withdrawals","withdrawal","withdraw"])
 
+if reg or ws or active or wd:
 
-    if reg or ws or active or wd:
         groups[current_group]["reg"] += reg
         groups[current_group]["ws"] += ws
         groups[current_group]["active"] += active
