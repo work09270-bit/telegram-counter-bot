@@ -10,7 +10,6 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "data.json"
 
 
-# Load saved data
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
@@ -23,7 +22,6 @@ def load_data():
         }
 
 
-# Save data
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(groups, f)
@@ -33,15 +31,18 @@ groups = load_data()
 current_group = None
 
 
-def find(text, words):
-    for w in words:
-        match = re.search(w + r".*?(\d+)", text.lower())
+def find_number(text, keywords):
+
+    for word in keywords:
+        pattern = word + r"[^\d]*(\d+)"
+        match = re.search(pattern, text)
+
         if match:
             return int(match.group(1))
+
     return 0
 
 
-# Keyboard buttons
 def keyboard():
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -63,7 +64,6 @@ def keyboard():
     return kb
 
 
-# Start command
 @bot.message_handler(commands=['start'])
 def start(message):
 
@@ -74,12 +74,12 @@ def start(message):
     )
 
 
-# Main handler
 @bot.message_handler(func=lambda m: True)
 def handle(message):
 
     global current_group
-    text = message.text.lower()
+
+    text = (message.text or message.caption or "").lower()
 
 
     if "win03" in text:
@@ -114,7 +114,6 @@ def handle(message):
         return
 
 
-    # DAILY REPORT (one-by-one)
     if "daily" in text:
 
         bot.send_message(
@@ -163,8 +162,7 @@ EARN TOGETHER: {groups['earn']['entries']}
         return
 
 
-    # END command
-    if text == "end":
+    if text.strip() == "end":
 
         g = groups[current_group]
 
@@ -188,11 +186,10 @@ Withdrawals: {g['wd']}
         return
 
 
-    # Detect numbers
-    reg = find(text,["registration","register"])
-    ws = find(text,["task","authorised","wa"])
-    active = find(text,["active"])
-    wd = find(text,["withdraw"])
+    reg = find_number(text, ["registrations", "registration", "register"])
+    ws = find_number(text, ["ws task", "task authorised", "wa task"])
+    active = find_number(text, ["active user", "active users", "active"])
+    wd = find_number(text, ["withdrawals", "withdrawal", "withdraw"])
 
 
     if reg or ws or active or wd:
