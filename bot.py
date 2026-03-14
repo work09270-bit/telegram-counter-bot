@@ -15,29 +15,35 @@ groups = {
 current_group = None
 
 
-def find(text, word):
-    match = re.search(word + r".*?(\d+)", text.lower())
-    if match:
-        return int(match.group(1))
+def find(text, words):
+    for w in words:
+        match = re.search(w + r".*?(\d+)", text.lower())
+        if match:
+            return int(match.group(1))
     return 0
 
 
-# start command
-@bot.message_handler(commands=['start'])
-def start(message):
+def keyboard():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
 
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-
-    keyboard.add(
+    kb.add(
         KeyboardButton("WIN03"),
         KeyboardButton("SMART HUB EARNING"),
         KeyboardButton("EARN TOGETHER")
     )
 
+    kb.add(KeyboardButton("RESET"))
+
+    return kb
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+
     bot.send_message(
         message.chat.id,
         "Select a group:",
-        reply_markup=keyboard
+        reply_markup=keyboard()
     )
 
 
@@ -62,11 +68,20 @@ def handle(message):
         bot.reply_to(message,"Start sending EARN TOGETHER data.\nSend END when finished.")
         return
 
+    if "reset" in text:
+
+        for g in groups:
+            groups[g] = {"reg":0,"ws":0,"active":0,"wd":0}
+
+        bot.reply_to(message,"All totals reset.")
+        return
+
+
     if text == "end":
 
         g = groups[current_group]
 
-        title = {
+        titles = {
             "win03":"WIN03",
             "smart":"SMART HUB EARNING",
             "earn":"EARN TOGETHER"
@@ -74,7 +89,7 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-f"""{title[current_group]}
+f"""{titles[current_group]}
 
 Registrations: {g['reg']}
 WS Task: {g['ws']}
@@ -85,15 +100,21 @@ Withdrawals: {g['wd']}
 
         return
 
-    reg = find(text,"registration")
-    ws = find(text,"task")
-    active = find(text,"active")
-    wd = find(text,"withdraw")
 
-    groups[current_group]["reg"] += reg
-    groups[current_group]["ws"] += ws
-    groups[current_group]["active"] += active
-    groups[current_group]["wd"] += wd
+    reg = find(text,["registration","register"])
+    ws = find(text,["task","authorised","wa"])
+    active = find(text,["active"])
+    wd = find(text,["withdraw"])
+
+    if reg or ws or active or wd:
+
+        groups[current_group]["reg"] += reg
+        groups[current_group]["ws"] += ws
+        groups[current_group]["active"] += active
+        groups[current_group]["wd"] += wd
+
+        # 👍 reaction so you know it counted
+        bot.send_message(message.chat.id,"👍")
 
 
 bot.infinity_polling()
