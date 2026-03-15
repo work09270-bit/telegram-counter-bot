@@ -10,9 +10,6 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "data.json"
 
 
-# ------------------------
-# Load data
-# ------------------------
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
@@ -25,9 +22,6 @@ def load_data():
         }
 
 
-# ------------------------
-# Save data
-# ------------------------
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(groups, f)
@@ -37,9 +31,6 @@ groups = load_data()
 current_group = None
 
 
-# ------------------------
-# Strong number parser
-# ------------------------
 def find_number(text, keywords):
 
     text = text.lower()
@@ -47,7 +38,6 @@ def find_number(text, keywords):
     for word in keywords:
 
         pattern = word + r"[\s\S]{0,20}?(\d+)"
-
         match = re.search(pattern, text)
 
         if match:
@@ -56,9 +46,6 @@ def find_number(text, keywords):
     return 0
 
 
-# ------------------------
-# Keyboard
-# ------------------------
 def keyboard():
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -80,9 +67,6 @@ def keyboard():
     return kb
 
 
-# ------------------------
-# Start
-# ------------------------
 @bot.message_handler(commands=['start'])
 def start(message):
 
@@ -93,9 +77,6 @@ def start(message):
     )
 
 
-# ------------------------
-# Main handler
-# ------------------------
 @bot.message_handler(content_types=['text','photo'])
 def handle(message):
 
@@ -103,8 +84,6 @@ def handle(message):
 
     text = (message.text if message.text else message.caption or "").lower()
 
-
-    # -------- GROUP SELECT --------
 
     if "win03" in text:
 
@@ -114,6 +93,7 @@ def handle(message):
             message.chat.id,
             "WIN03 selected\nSend WIN03 data\nType END when finished"
         )
+
         return
 
 
@@ -125,6 +105,7 @@ def handle(message):
             message.chat.id,
             "SMART HUB selected\nSend SMART HUB data\nType END when finished"
         )
+
         return
 
 
@@ -136,10 +117,9 @@ def handle(message):
             message.chat.id,
             "EARN TOGETHER selected\nSend data\nType END when finished"
         )
+
         return
 
-
-    # -------- RESET --------
 
     if "reset" in text:
 
@@ -153,92 +133,62 @@ def handle(message):
         return
 
 
-    # -------- DAILY REPORT --------
-
     if "daily" in text:
 
-        bot.send_message(
-            message.chat.id,
-            f"WIN03\n\n"
-            f"Registrations: {groups['win03']['reg']}\n"
-            f"WS Task: {groups['win03']['ws']}\n"
-            f"Active Users: {groups['win03']['active']}\n"
-            f"Withdrawals: {groups['win03']['wd']}"
+        bot.send_message(message.chat.id,
+        "WIN03\n\nRegistrations: "+str(groups['win03']['reg'])+
+        "\nWS Task: "+str(groups['win03']['ws'])+
+        "\nActive Users: "+str(groups['win03']['active'])+
+        "\nWithdrawals: "+str(groups['win03']['wd'])
         )
 
-        bot.send_message(
-            message.chat.id,
-            f"SMART HUB EARNING\n\n"
-            f"Registrations: {groups['smart']['reg']}\n"
-            f"WS Task: {groups['smart']['ws']}\n"
-            f"Active Users: {groups['smart']['active']}\n"
-            f"Withdrawals: {groups['smart']['wd']}"
+        bot.send_message(message.chat.id,
+        "SMART HUB EARNING\n\nRegistrations: "+str(groups['smart']['reg'])+
+        "\nWS Task: "+str(groups['smart']['ws'])+
+        "\nActive Users: "+str(groups['smart']['active'])+
+        "\nWithdrawals: "+str(groups['smart']['wd'])
         )
 
-        bot.send_message(
-            message.chat.id,
-            f"EARN TOGETHER\n\n"
-            f"Registrations: {groups['earn']['reg']}\n"
-            f"WS Task: {groups['earn']['ws']}\n"
-            f"Active Users: {groups['earn']['active']}\n"
-            f"Withdrawals: {groups['earn']['wd']}"
+        bot.send_message(message.chat.id,
+        "EARN TOGETHER\n\nRegistrations: "+str(groups['earn']['reg'])+
+        "\nWS Task: "+str(groups['earn']['ws'])+
+        "\nActive Users: "+str(groups['earn']['active'])+
+        "\nWithdrawals: "+str(groups['earn']['wd'])
         )
 
         return
 
 
-    # -------- END REPORT --------
-
     if text.strip() == "end":
-        
 
         g = groups[current_group]
 
-titles = {
+        titles = {
             "win03":"WIN03",
             "smart":"SMART HUB EARNING",
             "earn":"EARN TOGETHER"
         }
 
-        report = (
-            f"{titles[current_group]}\n\n"
-            f"Registrations: {g['reg']}\n"
-            f"WS Task: {g['ws']}\n"
-            f"Active Users: {g['active']}\n"
-            f"Withdrawals: {g['wd']}"
-        )
+        report = titles[current_group]+"\n\nRegistrations: "+str(g['reg'])+"\nWS Task: "+str(g['ws'])+"\nActive Users: "+str(g['active'])+"\nWithdrawals: "+str(g['wd'])
 
         bot.send_message(message.chat.id, report)
 
         return
 
 
-    # -------- NUMBER DETECTION --------
-
     reg = find_number(text,[
-        "registration",
-        "registrations",
-        "register",
-        "registered"
+        "registration","registrations","register","registered"
     ])
 
     ws = find_number(text,[
-        "ws task",
-        "wa task",
-        "task authorised",
-        "whatsapp task"
+        "ws task","wa task","task authorised","whatsapp task"
     ])
 
     active = find_number(text,[
-        "active user",
-        "active users",
-        "active"
+        "active user","active users","active"
     ])
-
     wd = find_number(text,[
-        "withdrawal",
-        "withdrawals",
-        "withdraw"
+        "withdrawal","withdrawals","withdraw"
     ])
 
 
