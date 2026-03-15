@@ -10,20 +10,24 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "data.json"
 
 
+# -------------------------
 # Load saved data
+# -------------------------
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
             return json.load(f)
     except:
         return {
-            "win03": {"reg":0,"ws":0,"active":0,"wd":0,"entries":0},
-            "smart": {"reg":0,"ws":0,"active":0,"wd":0,"entries":0},
-            "earn": {"reg":0,"ws":0,"active":0,"wd":0,"entries":0}
+            "win03": {"reg":0,"ws":0,"active":0,"wd":0},
+            "smart": {"reg":0,"ws":0,"active":0,"wd":0},
+            "earn": {"reg":0,"ws":0,"active":0,"wd":0}
         }
 
 
+# -------------------------
 # Save data
+# -------------------------
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(groups, f)
@@ -33,15 +37,28 @@ groups = load_data()
 current_group = None
 
 
-def find(text, words):
-    for w in words:
-        match = re.search(w + r".*?(\d+)", text.lower())
+# -------------------------
+# STRONG NUMBER PARSER
+# -------------------------
+def find_number(text, keywords):
+
+    text = text.lower()
+
+    for word in keywords:
+
+        pattern = word + r"[\s\S]{0,20}?(\d+)"
+
+        match = re.search(pattern, text)
+
         if match:
             return int(match.group(1))
+
     return 0
 
 
-# Keyboard buttons
+# -------------------------
+# Keyboard
+# -------------------------
 def keyboard():
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -63,7 +80,9 @@ def keyboard():
     return kb
 
 
-# Start command
+# -------------------------
+# Start
+# -------------------------
 @bot.message_handler(commands=['start'])
 def start(message):
 
@@ -74,47 +93,68 @@ def start(message):
     )
 
 
-# Main handler
-@bot.message_handler(func=lambda m: True)
+# -------------------------
+# Main Handler
+# -------------------------
+@bot.message_handler(content_types=['text','photo'])
 def handle(message):
 
     global current_group
-    text = message.text.lower()
 
+    text = (message.text if message.text else message.caption or "").lower()
+
+
+    # -------- GROUP SELECT --------
 
     if "win03" in text:
+
         current_group = "win03"
-        bot.send_message(message.chat.id,
-        "📊 WIN03 selected\nSend WIN03 data\nType END when finished")
+
+        bot.send_message(
+            message.chat.id,
+            "📊 WIN03 selected\nSend WIN03 data\nType END when finished"
+        )
         return
 
 
     if "smart" in text:
+
         current_group = "smart"
-        bot.send_message(message.chat.id,
-        "💼 SMART HUB selected\nSend SMART HUB data\nType END when finished")
+
+        bot.send_message(
+            message.chat.id,
+            "💼 SMART HUB selected\nSend SMART HUB data\nType END when finished"
+        )
         return
 
 
     if "earn" in text:
+
         current_group = "earn"
-        bot.send_message(message.chat.id,
-        "💰 EARN TOGETHER selected\nSend EARN TOGETHER data\nType END when finished")
+
+        bot.send_message(
+            message.chat.id,
+            "💰 EARN TOGETHER selected\nSend EARN data\nType END when finished"
+        )
         return
 
+
+    # -------- RESET --------
 
     if "reset" in text:
 
         for g in groups:
-            groups[g] = {"reg":0,"ws":0,"active":0,"wd":0,"entries":0}
+            groups[g] = {"reg":0,"ws":0,"active":0,"wd":0}
 
         save_data()
 
-        bot.send_message(message.chat.id,"🔄 All totals reset.")
+        bot.send_message(message.chat.id,"🔄 All totals reset")
+
         return
 
 
-    # DAILY REPORT (one-by-one)
+    # -------- DAILY REPORT --------
+
     if "daily" in text:
 
         bot.send_message(
@@ -150,21 +190,12 @@ Withdrawals: {groups['earn']['wd']}
 """
         )
 
-        bot.send_message(
-            message.chat.id,
-f"""Entries Counted
-
-WIN03: {groups['win03']['entries']}
-SMART HUB: {groups['smart']['entries']}
-EARN TOGETHER: {groups['earn']['entries']}
-"""
-        )
-
         return
 
 
-    # END command
-    if text == "end":
+    # -------- END REPORT --------
+
+    if text.strip() == "end":
 
         g = groups[current_group]
 
@@ -177,8 +208,7 @@ EARN TOGETHER: {groups['earn']['entries']}
         bot.send_message(
             message.chat.id,
 f"""{titles[current_group]}
-
-Registrations: {g['reg']}
+        Registrations: {g['reg']}
 WS Task: {g['ws']}
 Active Users: {g['active']}
 Withdrawals: {g['wd']}
@@ -188,19 +218,41 @@ Withdrawals: {g['wd']}
         return
 
 
-    # Detect numbers
-    reg = find(text,["registration","register"])
-    ws = find(text,["task","authorised","wa"])
-    active = find(text,["active"])
-    wd = find(text,["withdraw"])
+    # -------- NUMBER DETECTION --------
+
+    reg = find_number(text,[
+        "registration",
+        "registrations",
+        "register",
+        "registered"
+    ])
+
+    ws = find_number(text,[
+        "ws task",
+        "wa task",
+        "task authorised",
+        "whatsapp task"
+    ])
+
+    active = find_number(text,[
+        "active user",
+        "active users",
+        "active"
+    ])
+
+    wd = find_number(text,[
+        "withdrawal",
+        "withdrawals",
+        "withdraw"
+    ])
 
 
     if reg or ws or active or wd:
+
         groups[current_group]["reg"] += reg
         groups[current_group]["ws"] += ws
         groups[current_group]["active"] += active
         groups[current_group]["wd"] += wd
-        groups[current_group]["entries"] += 1
 
         save_data()
 
