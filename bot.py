@@ -5,7 +5,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 TOKEN = "8237808648:AAEY4bluOzClNSFOd79w4kjgTsL2rul-VZg"
 
-OWNER = "@dwaterlawh"   # change to your telegram username
+OWNER = "dwaterlawh"   # change to your telegram username
 
 bot = telebot.TeleBot(TOKEN)
 
