@@ -10,9 +10,9 @@ bot = telebot.TeleBot(TOKEN)
 DATA_FILE = "data.json"
 
 
-# -------------------------
-# Load saved data
-# -------------------------
+# ------------------------
+# Load data
+# ------------------------
 def load_data():
     try:
         with open(DATA_FILE, "r") as f:
@@ -25,9 +25,9 @@ def load_data():
         }
 
 
-# -------------------------
+# ------------------------
 # Save data
-# -------------------------
+# ------------------------
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump(groups, f)
@@ -37,9 +37,9 @@ groups = load_data()
 current_group = None
 
 
-# -------------------------
-# STRONG NUMBER PARSER
-# -------------------------
+# ------------------------
+# Strong number parser
+# ------------------------
 def find_number(text, keywords):
 
     text = text.lower()
@@ -56,9 +56,9 @@ def find_number(text, keywords):
     return 0
 
 
-# -------------------------
+# ------------------------
 # Keyboard
-# -------------------------
+# ------------------------
 def keyboard():
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -80,9 +80,9 @@ def keyboard():
     return kb
 
 
-# -------------------------
+# ------------------------
 # Start
-# -------------------------
+# ------------------------
 @bot.message_handler(commands=['start'])
 def start(message):
 
@@ -93,9 +93,9 @@ def start(message):
     )
 
 
-# -------------------------
-# Main Handler
-# -------------------------
+# ------------------------
+# Main handler
+# ------------------------
 @bot.message_handler(content_types=['text','photo'])
 def handle(message):
 
@@ -112,7 +112,7 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-            "📊 WIN03 selected\nSend WIN03 data\nType END when finished"
+            "WIN03 selected\nSend WIN03 data\nType END when finished"
         )
         return
 
@@ -123,7 +123,7 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-            "💼 SMART HUB selected\nSend SMART HUB data\nType END when finished"
+            "SMART HUB selected\nSend SMART HUB data\nType END when finished"
         )
         return
 
@@ -134,7 +134,7 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-            "💰 EARN TOGETHER selected\nSend EARN data\nType END when finished"
+            "EARN TOGETHER selected\nSend data\nType END when finished"
         )
         return
 
@@ -148,7 +148,7 @@ def handle(message):
 
         save_data()
 
-        bot.send_message(message.chat.id,"🔄 All totals reset")
+        bot.send_message(message.chat.id,"All totals reset")
 
         return
 
@@ -159,35 +159,29 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-f"""📊 WIN03
-
-Registrations: {groups['win03']['reg']}
-WS Task: {groups['win03']['ws']}
-Active Users: {groups['win03']['active']}
-Withdrawals: {groups['win03']['wd']}
-"""
+            f"WIN03\n\n"
+            f"Registrations: {groups['win03']['reg']}\n"
+            f"WS Task: {groups['win03']['ws']}\n"
+            f"Active Users: {groups['win03']['active']}\n"
+            f"Withdrawals: {groups['win03']['wd']}"
         )
 
         bot.send_message(
             message.chat.id,
-f"""💼 SMART HUB EARNING
-
-Registrations: {groups['smart']['reg']}
-WS Task: {groups['smart']['ws']}
-Active Users: {groups['smart']['active']}
-Withdrawals: {groups['smart']['wd']}
-"""
+            f"SMART HUB EARNING\n\n"
+            f"Registrations: {groups['smart']['reg']}\n"
+            f"WS Task: {groups['smart']['ws']}\n"
+            f"Active Users: {groups['smart']['active']}\n"
+            f"Withdrawals: {groups['smart']['wd']}"
         )
 
         bot.send_message(
             message.chat.id,
-f"""💰 EARN TOGETHER
-
-Registrations: {groups['earn']['reg']}
-WS Task: {groups['earn']['ws']}
-Active Users: {groups['earn']['active']}
-Withdrawals: {groups['earn']['wd']}
-"""
+            f"EARN TOGETHER\n\n"
+            f"Registrations: {groups['earn']['reg']}\n"
+            f"WS Task: {groups['earn']['ws']}\n"
+            f"Active Users: {groups['earn']['active']}\n"
+            f"Withdrawals: {groups['earn']['wd']}"
         )
 
         return
@@ -196,24 +190,25 @@ Withdrawals: {groups['earn']['wd']}
     # -------- END REPORT --------
 
     if text.strip() == "end":
+        
 
         g = groups[current_group]
 
-        titles = {
-            "win03":"📊 WIN03",
-            "smart":"💼 SMART HUB EARNING",
-            "earn":"💰 EARN TOGETHER"
+titles = {
+            "win03":"WIN03",
+            "smart":"SMART HUB EARNING",
+            "earn":"EARN TOGETHER"
         }
 
-        bot.send_message(
-            message.chat.id,
-f"""{titles[current_group]}
-        Registrations: {g['reg']}
-WS Task: {g['ws']}
-Active Users: {g['active']}
-Withdrawals: {g['wd']}
-"""
+        report = (
+            f"{titles[current_group]}\n\n"
+            f"Registrations: {g['reg']}\n"
+            f"WS Task: {g['ws']}\n"
+            f"Active Users: {g['active']}\n"
+            f"Withdrawals: {g['wd']}"
         )
+
+        bot.send_message(message.chat.id, report)
 
         return
 
