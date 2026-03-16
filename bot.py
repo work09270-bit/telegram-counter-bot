@@ -4,17 +4,14 @@ import json
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 TOKEN = "8237808648:AAEY4bluOzClNSFOd79w4kjgTsL2rul-VZg"
-
-OWNER = "dwaterlawh"   # change to your telegram username
+OWNER = "dwaterlawh"   # without @
 
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "data.json"
 ADMIN_FILE = "admins.json"
 
-# ----------------------
-# LOAD ADMINS
-# ----------------------
+# ---------------- ADMIN SYSTEM ---------------- #
 
 def load_admins():
     try:
@@ -31,9 +28,11 @@ def save_admins(admins):
 
 admins = load_admins()
 
-# ----------------------
-# LOAD DATA
-# ----------------------
+def is_admin(message):
+    username = message.from_user.username
+    return username in admins
+
+# ---------------- DATA SYSTEM ---------------- #
 
 def load_data():
     try:
@@ -51,25 +50,9 @@ def save_data():
         json.dump(groups,f)
 
 groups = load_data()
-
 current_group = None
 
-# ----------------------
-# ADMIN CHECK
-# ----------------------
-
-def is_admin(message):
-
-    username = message.from_user.username
-
-    if username in admins:
-        return True
-
-    return False
-
-# ----------------------
-# FIND NUMBER
-# ----------------------
+# ---------------- FIND NUMBER ---------------- #
 
 def find_number(text,keywords):
 
@@ -86,9 +69,7 @@ def find_number(text,keywords):
 
     return 0
 
-# ----------------------
-# KEYBOARD
-# ----------------------
+# ---------------- MAIN KEYBOARD ---------------- #
 
 def keyboard():
 
@@ -108,11 +89,34 @@ def keyboard():
         KeyboardButton("RESET")
     )
 
+    kb.add(
+        KeyboardButton("ADMIN PANEL")
+    )
+
     return kb
 
-# ----------------------
-# START
-# ----------------------
+# ---------------- ADMIN PANEL ---------------- #
+
+def admin_keyboard():
+
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+
+    kb.add(
+        KeyboardButton("➕ Add Admin"),
+        KeyboardButton("➖ Remove Admin")
+    )
+
+    kb.add(
+        KeyboardButton("👥 Admin List")
+    )
+
+    kb.add(
+        KeyboardButton("🔙 Back")
+    )
+
+    return kb
+
+# ---------------- START ---------------- #
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -123,9 +127,82 @@ def start(message):
 
     bot.send_message(message.chat.id,"Select group",reply_markup=keyboard())
 
-# ----------------------
-# MAIN HANDLER
-# ----------------------
+# ---------------- ADMIN PANEL OPEN ---------------- #
+
+@bot.message_handler(func=lambda m: m.text == "ADMIN PANEL")
+def open_admin(message):
+
+    if message.from_user.username != OWNER:
+        bot.send_message(message.chat.id,"Only owner can access admin panel")
+        return
+
+    bot.send_message(message.chat.id,"Admin Panel",reply_markup=admin_keyboard())
+
+# ---------------- ADD ADMIN ---------------- #
+
+@bot.message_handler(func=lambda m: m.text == "➕ Add Admin")
+def add_admin(message):
+
+    msg = bot.send_message(message.chat.id,"Send username like:\n@username")
+
+    bot.register_next_step_handler(msg,process_add_admin)
+
+def process_add_admin(message):
+
+    username = message.text.replace("@","").lower()
+
+    if username not in admins:
+
+        admins.append(username)
+
+        save_admins(admins)
+
+        bot.send_message(message.chat.id,f"{username} added as admin")
+
+    else:
+
+        bot.send_message(message.chat.id,"Already admin")
+
+# ---------------- REMOVE ADMIN ---------------- #
+
+@bot.message_handler(func=lambda m: m.text == "➖ Remove Admin")
+def remove_admin(message):
+
+    msg = bot.send_message(message.chat.id,"Send username to remove")
+
+    bot.register_next_step_handler(msg,process_remove_admin)
+
+def process_remove_admin(message):
+
+    username = message.text.replace("@","")
+
+    if username in admins:
+
+        admins.remove(username)
+
+        save_admins(admins)
+
+        bot.send_message(message.chat.id,f"{username} removed")
+
+    else:
+
+        bot.send_message(message.chat.id,"User not admin")
+
+# ---------------- ADMIN LIST ---------------- #
+
+@bot.message_handler(func=lambda m: m.text == "👥 Admin List")
+def admin_list(message):
+
+    bot.send_message(message.chat.id,"Admins:\n\n"+ "\n".join(admins))
+
+# ---------------- BACK BUTTON ---------------- #
+
+@bot.message_handler(func=lambda m: m.text == "🔙 Back")
+def back_menu(message):
+
+    bot.send_message(message.chat.id,"Main Menu",reply_markup=keyboard())
+
+# ---------------- MAIN HANDLER ---------------- #
 
 @bot.message_handler(content_types=['text','photo'])
 def handle(message):
@@ -137,9 +214,7 @@ def handle(message):
 
     text = (message.text if message.text else message.caption or "").lower()
 
-# ----------------------
-# GROUP SELECT
-# ----------------------
+# -------- GROUP SELECT -------- #
 
     if "win03" in text:
 
@@ -165,9 +240,7 @@ def handle(message):
 
         return
 
-# ----------------------
-# RESET
-# ----------------------
+# -------- RESET -------- #
 
     if "reset" in text:
 
@@ -180,37 +253,22 @@ def handle(message):
 
         return
 
-# ----------------------
-# DAILY REPORT
-# ----------------------
+# -------- DAILY REPORT -------- #
 
     if "daily" in text:
 
         bot.send_message(message.chat.id,
-        "WIN03\n\nRegistrations: "+str(groups['win03']['reg'])+
-        "\nWS Task: "+str(groups['win03']['ws'])+
-        "\nActive Users: "+str(groups['win03']['active'])+
-        "\nWithdrawals: "+str(groups['win03']['wd'])
-        )
+        f"WIN03\n\nRegistrations: {groups['win03']['reg']}\nWS Task: {groups['win03']['ws']}\nActive Users: {groups['win03']['active']}\nWithdrawals: {groups['win03']['wd']}")
 
         bot.send_message(message.chat.id,
-        "SMART HUB\n\nRegistrations: "+str(groups['smart']['reg'])+
-        "\nWS Task: "+str(groups['smart']['ws'])+
-        "\nActive Users: "+str(groups['smart']['active'])+
-        "\nWithdrawals: "+str(groups['smart']['wd'])
-        )
+        f"SMART HUB\n\nRegistrations: {groups['smart']['reg']}\nWS Task: {groups['smart']['ws']}\nActive Users: {groups['smart']['active']}\nWithdrawals: {groups['smart']['wd']}")
+
         bot.send_message(message.chat.id,
-        "EARN TOGETHER\n\nRegistrations: "+str(groups['earn']['reg'])+
-        "\nWS Task: "+str(groups['earn']['ws'])+
-        "\nActive Users: "+str(groups['earn']['active'])+
-        "\nWithdrawals: "+str(groups['earn']['wd'])
-        )
+        f"EARN TOGETHER\n\nRegistrations: {groups['earn']['reg']}\nWS Task: {groups['earn']['ws']}\nActive Users: {groups['earn']['active']}\nWithdrawals: {groups['earn']['wd']}")
 
         return
 
-# ----------------------
-# END REPORT
-# ----------------------
+# -------- END REPORT -------- #
 
     if text.strip() == "end":
 
@@ -222,52 +280,35 @@ def handle(message):
             "earn":"EARN TOGETHER"
         }
 
-        report = titles[current_group]+"\n\nRegistrations: "+str(g['reg'])+"\nWS Task: "+str(g['ws'])+"\nActive Users: "+str(g['active'])+"\nWithdrawals: "+str(g['wd'])
+        report = f"{titles[current_group]}\n\nRegistrations: {g['reg']}\nWS Task: {g['ws']}\nActive Users: {g['active']}\nWithdrawals: {g['wd']}"
 
         bot.send_message(message.chat.id,report)
 
         return
 
-# ----------------------
-# SMART WORD FILTER
-# ----------------------
+# -------- WORD FILTER -------- #
 
     reg = find_number(text,[
-    "registration",
-    "registrations",
-    "register",
-    "registered",
-    "today new subordinate",
-    "today new subordinates",
-    "new subordinate",
-    "new subordinates",
-    "new user",
-    "new users"
+    "registration","registrations","register","registered",
+    "today new subordinate","today new subordinates",
+    "new subordinate","new subordinates",
+    "new user","new users"
     ])
 
     ws = find_number(text,[
-    "ws task",
-    "wa task",
-    "wa authorised",
-    "wa link",
-    "whatsapp task",
-    "whatsapp authorised"
+    "ws task","wa task","wa authorised","wa link",
+    "whatsapp task","whatsapp authorised"
     ])
 
     active = find_number(text,[
-    "active user",
-    "active users"
+    "active user","active users"
     ])
 
     wd = find_number(text,[
-    "withdraw",
-    "withdrawal",
-    "withdrawals"
+    "withdraw","withdrawal","withdrawals"
     ])
 
-# ----------------------
-# ADD + SHOW LIVE COUNT
-# ----------------------
+# -------- COUNTING -------- #
 
     if reg or ws or active or wd:
 
@@ -282,11 +323,7 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-            "Counting...\n\n"
-            "Registrations: "+str(g["reg"])+
-            "\nWS Task: "+str(g["ws"])+
-            "\nActive Users: "+str(g["active"])+
-            "\nWithdrawals: "+str(g["wd"])
+            f"Counting...\n\nRegistrations: {g['reg']}\nWS Task: {g['ws']}\nActive Users: {g['active']}\nWithdrawals: {g['wd']}"
         )
 
 bot.infinity_polling()
