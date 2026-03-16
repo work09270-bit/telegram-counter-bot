@@ -4,7 +4,7 @@ import json
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 TOKEN = "8237808648:AAEY4bluOzClNSFOd79w4kjgTsL2rul-VZg"
-OWNER = "dwaterlawh"   # without @
+OWNER = "dwaterlawh"
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -34,15 +34,23 @@ def is_admin(message):
 
 # ---------------- DATA SYSTEM ---------------- #
 
+def empty_group():
+    return {
+        "reg":[],
+        "ws":[],
+        "active":[],
+        "wd":[]
+    }
+
 def load_data():
     try:
         with open(DATA_FILE,"r") as f:
             return json.load(f)
     except:
         return {
-            "win03":{"reg":0,"ws":0,"active":0,"wd":0},
-            "smart":{"reg":0,"ws":0,"active":0,"wd":0},
-            "earn":{"reg":0,"ws":0,"active":0,"wd":0}
+            "win03":empty_group(),
+            "smart":empty_group(),
+            "earn":empty_group()
         }
 
 def save_data():
@@ -69,7 +77,21 @@ def find_number(text,keywords):
 
     return 0
 
-# ---------------- MAIN KEYBOARD ---------------- #
+# ---------------- FORMAT CALCULATION ---------------- #
+
+def calc(numbers):
+
+    if not numbers:
+        return "0"
+
+    total = sum(numbers)
+
+    if len(numbers) == 1:
+        return f"{numbers[0]} = {total}"
+
+    return " + ".join(map(str,numbers)) + f" = {total}"
+
+# ---------------- KEYBOARD ---------------- #
 
 def keyboard():
 
@@ -89,31 +111,6 @@ def keyboard():
         KeyboardButton("RESET")
     )
 
-    kb.add(
-        KeyboardButton("ADMIN PANEL")
-    )
-
-    return kb
-
-# ---------------- ADMIN PANEL ---------------- #
-
-def admin_keyboard():
-
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
-
-    kb.add(
-        KeyboardButton("➕ Add Admin"),
-        KeyboardButton("➖ Remove Admin")
-    )
-
-    kb.add(
-        KeyboardButton("👥 Admin List")
-    )
-
-    kb.add(
-        KeyboardButton("🔙 Back")
-    )
-
     return kb
 
 # ---------------- START ---------------- #
@@ -126,81 +123,6 @@ def start(message):
         return
 
     bot.send_message(message.chat.id,"Select group",reply_markup=keyboard())
-
-# ---------------- ADMIN PANEL OPEN ---------------- #
-
-@bot.message_handler(func=lambda m: m.text == "ADMIN PANEL")
-def open_admin(message):
-
-    if message.from_user.username != OWNER:
-        bot.send_message(message.chat.id,"Only owner can access admin panel")
-        return
-
-    bot.send_message(message.chat.id,"Admin Panel",reply_markup=admin_keyboard())
-
-# ---------------- ADD ADMIN ---------------- #
-
-@bot.message_handler(func=lambda m: m.text == "➕ Add Admin")
-def add_admin(message):
-
-    msg = bot.send_message(message.chat.id,"Send username like:\n@username")
-
-    bot.register_next_step_handler(msg,process_add_admin)
-
-def process_add_admin(message):
-
-    username = message.text.replace("@","").lower()
-
-    if username not in admins:
-
-        admins.append(username)
-
-        save_admins(admins)
-
-        bot.send_message(message.chat.id,f"{username} added as admin")
-
-    else:
-
-        bot.send_message(message.chat.id,"Already admin")
-
-# ---------------- REMOVE ADMIN ---------------- #
-
-@bot.message_handler(func=lambda m: m.text == "➖ Remove Admin")
-def remove_admin(message):
-
-    msg = bot.send_message(message.chat.id,"Send username to remove")
-
-    bot.register_next_step_handler(msg,process_remove_admin)
-
-def process_remove_admin(message):
-
-    username = message.text.replace("@","")
-
-    if username in admins:
-
-        admins.remove(username)
-
-        save_admins(admins)
-
-        bot.send_message(message.chat.id,f"{username} removed")
-
-    else:
-
-        bot.send_message(message.chat.id,"User not admin")
-
-# ---------------- ADMIN LIST ---------------- #
-
-@bot.message_handler(func=lambda m: m.text == "👥 Admin List")
-def admin_list(message):
-
-    bot.send_message(message.chat.id,"Admins:\n\n"+ "\n".join(admins))
-
-# ---------------- BACK BUTTON ---------------- #
-
-@bot.message_handler(func=lambda m: m.text == "🔙 Back")
-def back_menu(message):
-
-    bot.send_message(message.chat.id,"Main Menu",reply_markup=keyboard())
 
 # ---------------- MAIN HANDLER ---------------- #
 
@@ -219,25 +141,19 @@ def handle(message):
     if "win03" in text:
 
         current_group = "win03"
-
         bot.send_message(message.chat.id,"Send WIN03 data\nType END when finished")
-
         return
 
     if "smart" in text:
 
         current_group = "smart"
-
         bot.send_message(message.chat.id,"Send SMART HUB data\nType END when finished")
-
         return
 
     if "earn" in text:
 
         current_group = "earn"
-
         bot.send_message(message.chat.id,"Send EARN TOGETHER data\nType END when finished")
-
         return
 
 # -------- RESET -------- #
@@ -245,26 +161,43 @@ def handle(message):
     if "reset" in text:
 
         for g in groups:
-            groups[g] = {"reg":0,"ws":0,"active":0,"wd":0}
+            groups[g] = empty_group()
 
         save_data()
 
         bot.send_message(message.chat.id,"All totals reset")
-
         return
 
 # -------- DAILY REPORT -------- #
 
     if "daily" in text:
 
-        bot.send_message(message.chat.id,
-        f"WIN03\n\nRegistrations: {groups['win03']['reg']}\nWS Task: {groups['win03']['ws']}\nActive Users: {groups['win03']['active']}\nWithdrawals: {groups['win03']['wd']}")
+        titles = {
+            "win03":"WIN03",
+            "smart":"SMART HUB",
+            "earn":"EARN TOGETHER"
+        }
 
-        bot.send_message(message.chat.id,
-        f"SMART HUB\n\nRegistrations: {groups['smart']['reg']}\nWS Task: {groups['smart']['ws']}\nActive Users: {groups['smart']['active']}\nWithdrawals: {groups['smart']['wd']}")
+        for g in groups:
 
-        bot.send_message(message.chat.id,
-        f"EARN TOGETHER\n\nRegistrations: {groups['earn']['reg']}\nWS Task: {groups['earn']['ws']}\nActive Users: {groups['earn']['active']}\nWithdrawals: {groups['earn']['wd']}")
+            data = groups[g]
+
+            msg = f"""{titles[g]}
+
+Registrations
+{calc(data['reg'])}
+
+WS Task
+{calc(data['ws'])}
+
+Active Users
+{calc(data['active'])}
+
+Withdrawals
+{calc(data['wd'])}
+"""
+
+            bot.send_message(message.chat.id,msg)
 
         return
 
@@ -280,7 +213,20 @@ def handle(message):
             "earn":"EARN TOGETHER"
         }
 
-        report = f"{titles[current_group]}\n\nRegistrations: {g['reg']}\nWS Task: {g['ws']}\nActive Users: {g['active']}\nWithdrawals: {g['wd']}"
+        report = f"""{titles[current_group]}
+
+Registrations
+{calc(g['reg'])}
+
+WS Task
+{calc(g['ws'])}
+
+Active Users
+{calc(g['active'])}
+
+Withdrawals
+{calc(g['wd'])}
+"""
 
         bot.send_message(message.chat.id,report)
 
@@ -312,10 +258,17 @@ def handle(message):
 
     if reg or ws or active or wd:
 
-        groups[current_group]["reg"] += reg
-        groups[current_group]["ws"] += ws
-        groups[current_group]["active"] += active
-        groups[current_group]["wd"] += wd
+        if reg:
+            groups[current_group]["reg"].append(reg)
+
+        if ws:
+            groups[current_group]["ws"].append(ws)
+
+        if active:
+            groups[current_group]["active"].append(active)
+
+        if wd:
+            groups[current_group]["wd"].append(wd)
 
         save_data()
 
@@ -323,7 +276,20 @@ def handle(message):
 
         bot.send_message(
             message.chat.id,
-            f"Counting...\n\nRegistrations: {g['reg']}\nWS Task: {g['ws']}\nActive Users: {g['active']}\nWithdrawals: {g['wd']}"
+            f"""Counting...
+
+Registrations
+{calc(g['reg'])}
+
+WS Task
+{calc(g['ws'])}
+
+Active Users
+{calc(g['active'])}
+
+Withdrawals
+{calc(g['wd'])}
+"""
         )
 
 bot.infinity_polling()
