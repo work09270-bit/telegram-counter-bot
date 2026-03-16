@@ -4,7 +4,7 @@ import json
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 TOKEN = "8237808648:AAEY4bluOzClNSFOd79w4kjgTsL2rul-VZg"
-OWNER = "dwaterlawh"
+OWNER_ID = 8137930541  # your telegram numeric ID
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -18,7 +18,7 @@ def load_admins():
         with open(ADMIN_FILE,"r") as f:
             return json.load(f)
     except:
-        admins = [OWNER]
+        admins = [OWNER_ID]
         save_admins(admins)
         return admins
 
@@ -28,19 +28,14 @@ def save_admins(admins):
 
 admins = load_admins()
 
-def is_admin(message):
-    username = message.from_user.username
-    return username in admins
+def is_admin(user_id):
+    return user_id in admins
+
 
 # ---------------- DATA SYSTEM ---------------- #
 
 def empty_group():
-    return {
-        "reg":[],
-        "ws":[],
-        "active":[],
-        "wd":[]
-    }
+    return {"reg":[],"ws":[],"active":[],"wd":[]}
 
 def load_data():
     try:
@@ -58,17 +53,17 @@ def save_data():
         json.dump(groups,f)
 
 groups = load_data()
-current_group = None
+
+# store selected group per chat
+chat_group = {}
 
 # ---------------- FIND NUMBER ---------------- #
 
 def find_number(text,keywords):
 
-    text = text.lower()
-
     for word in keywords:
 
-        pattern = word + r"[\s\S]{0,20}?(\d+)"
+        pattern = rf"{word}[^0-9]*(\d+)"
 
         match = re.search(pattern,text)
 
@@ -77,7 +72,8 @@ def find_number(text,keywords):
 
     return 0
 
-# ---------------- FORMAT CALCULATION ---------------- #
+
+# ---------------- FORMAT CALC ---------------- #
 
 def calc(numbers):
 
@@ -87,9 +83,10 @@ def calc(numbers):
     total = sum(numbers)
 
     if len(numbers) == 1:
-        return f"{numbers[0]} = {total}"
+        return str(total)
 
     return " + ".join(map(str,numbers)) + f" = {total}"
+
 
 # ---------------- KEYBOARD ---------------- #
 
@@ -113,64 +110,74 @@ def keyboard():
 
     return kb
 
+
 # ---------------- START ---------------- #
 
 @bot.message_handler(commands=['start'])
 def start(message):
 
-    if not is_admin(message):
+    if not is_admin(message.from_user.id):
         bot.send_message(message.chat.id,"Access denied")
         return
 
     bot.send_message(message.chat.id,"Select group",reply_markup=keyboard())
+
 
 # ---------------- MAIN HANDLER ---------------- #
 
 @bot.message_handler(content_types=['text','photo'])
 def handle(message):
 
-    global current_group
-
-    if not is_admin(message):
+    if not is_admin(message.from_user.id):
         return
+
+    chat_id = message.chat.id
 
     text = (message.text if message.text else message.caption or "").lower()
 
+
 # -------- GROUP SELECT -------- #
 
-    if "win03" in text:
+    if text == "win03":
 
-        current_group = "win03"
-        bot.send_message(message.chat.id,"Send WIN03 data\nType END when finished")
+        chat_group[chat_id] = "win03"
+
+        bot.send_message(chat_id,"Send WIN03 data\nType END when finished")
         return
 
-    if "smart" in text:
 
-        current_group = "smart"
-        bot.send_message(message.chat.id,"Send SMART HUB data\nType END when finished")
+    if text == "smart hub":
+
+        chat_group[chat_id] = "smart"
+
+        bot.send_message(chat_id,"Send SMART HUB data\nType END when finished")
         return
 
-    if "earn" in text:
 
-        current_group = "earn"
-        bot.send_message(message.chat.id,"Send EARN TOGETHER data\nType END when finished")
+    if text == "earn together":
+
+        chat_group[chat_id] = "earn"
+
+        bot.send_message(chat_id,"Send EARN TOGETHER data\nType END when finished")
         return
+
 
 # -------- RESET -------- #
 
-    if "reset" in text:
+    if text == "reset":
 
         for g in groups:
             groups[g] = empty_group()
 
         save_data()
 
-        bot.send_message(message.chat.id,"All totals reset")
+        bot.send_message(chat_id,"All totals reset")
         return
+
 
 # -------- DAILY REPORT -------- #
 
-    if "daily" in text:
+    if text == "daily report":
 
         titles = {
             "win03":"WIN03",
@@ -182,7 +189,8 @@ def handle(message):
 
             data = groups[g]
 
-            msg = f"""{titles[g]}
+            msg = f"""
+{titles[g]}
 
 Registrations
 {calc(data['reg'])}
@@ -197,15 +205,22 @@ Withdrawals
 {calc(data['wd'])}
 """
 
-            bot.send_message(message.chat.id,msg)
+            bot.send_message(chat_id,msg)
 
         return
 
+
 # -------- END REPORT -------- #
 
-    if text.strip() == "end":
+    if text == "end":
 
-        g = groups[current_group]
+        if chat_id not in chat_group:
+            bot.send_message(chat_id,"Select group first")
+            return
+
+        gname = chat_group[chat_id]
+
+        g = groups[gname]
 
         titles = {
             "win03":"WIN03",
@@ -213,7 +228,8 @@ Withdrawals
             "earn":"EARN TOGETHER"
         }
 
-        report = f"""{titles[current_group]}
+        report = f"""
+{titles[gname]}
 
 Registrations
 {calc(g['reg'])}
@@ -228,22 +244,27 @@ Withdrawals
 {calc(g['wd'])}
 """
 
-        bot.send_message(message.chat.id,report)
+        bot.send_message(chat_id,report)
 
         return
 
-# -------- WORD FILTER -------- #
+
+# -------- REQUIRE GROUP -------- #
+
+    if chat_id not in chat_group:
+        return
+
+    group = chat_group[chat_id]
+
+
+# -------- DETECT NUMBERS -------- #
 
     reg = find_number(text,[
-    "registration","registrations","register","registered",
-    "today new subordinate","today new subordinates",
-    "new subordinate","new subordinates",
-    "new user","new users"
+    "registration","register","new subordinate","new user"
     ])
 
     ws = find_number(text,[
-    "ws task","wa task","wa authorised","wa link",
-    "whatsapp task","whatsapp authorised"
+    "ws task","wa task","wa link","whatsapp task"
     ])
 
     active = find_number(text,[
@@ -251,32 +272,34 @@ Withdrawals
     ])
 
     wd = find_number(text,[
-    "withdraw","withdrawal","withdrawals"
+    "withdraw","withdrawal"
     ])
 
-# -------- COUNTING -------- #
+
+# -------- COUNT -------- #
+
+    if reg:
+        groups[group]["reg"].append(reg)
+
+    if ws:
+        groups[group]["ws"].append(ws)
+
+    if active:
+        groups[group]["active"].append(active)
+
+    if wd:
+        groups[group]["wd"].append(wd)
 
     if reg or ws or active or wd:
 
-        if reg:
-            groups[current_group]["reg"].append(reg)
-
-        if ws:
-            groups[current_group]["ws"].append(ws)
-
-        if active:
-            groups[current_group]["active"].append(active)
-
-        if wd:
-            groups[current_group]["wd"].append(wd)
-
         save_data()
 
-        g = groups[current_group]
+        g = groups[group]
 
         bot.send_message(
-            message.chat.id,
-            f"""Counting...
+            chat_id,
+            f"""
+Counting...
 
 Registrations
 {calc(g['reg'])}
@@ -291,5 +314,6 @@ Withdrawals
 {calc(g['wd'])}
 """
         )
+
 
 bot.infinity_polling()
